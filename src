@@ -1,0 +1,180 @@
+import tkinter as tk
+from tkinter import messagebox, scrolledtext
+from fpdf import FPDF
+import os
+
+# Janela principal
+root = tk.Tk()
+root.title("Organizador de Horários")
+
+# Listas para armazenar dados
+professores = []
+turmas = []
+disciplinas = []
+horarios = {}
+
+# Função para adicionar professor com quantidade de aulas por semana
+def adicionar_professor():
+    nome = entry_professor.get()
+    aulas_semana = entry_aulas_semana.get()
+    
+    if nome and aulas_semana.isdigit():
+        professores.append({"nome": nome, "aulas_semana": int(aulas_semana)})
+        entry_professor.delete(0, tk.END)
+        entry_aulas_semana.delete(0, tk.END)
+        messagebox.showinfo("Sucesso", f"Professor {nome} adicionado com {aulas_semana} aulas por semana.")
+    else:
+        messagebox.showwarning("Erro", "Nome do professor ou quantidade de aulas inválida.")
+
+# Função para adicionar turma
+def adicionar_turma():
+    nome_turma = entry_turma.get()
+    if nome_turma:
+        turmas.append(nome_turma)
+        entry_turma.delete(0, tk.END)
+        messagebox.showinfo("Sucesso", f"Turma {nome_turma} adicionada.")
+    else:
+        messagebox.showwarning("Erro", "Nome da turma não pode estar vazio.")
+
+# Função para adicionar disciplina
+def adicionar_disciplina():
+    nome_disciplina = entry_disciplina.get()
+    professor_selecionado = professor_listbox.get(tk.ACTIVE)
+    
+    if nome_disciplina and professor_selecionado:
+        professor = next(p for p in professores if p["nome"] == professor_selecionado)
+        disciplinas.append({"disciplina": nome_disciplina, "professor": professor_selecionado})
+        entry_disciplina.delete(0, tk.END)
+        messagebox.showinfo("Sucesso", f"Disciplina {nome_disciplina} associada ao professor {professor_selecionado}.")
+    else:
+        messagebox.showwarning("Erro", "Disciplina ou professor inválido.")
+
+# Função para gerar horários
+def gerar_horarios():
+    global horarios
+    horarios = {}
+    
+    for turma in turmas:
+        horarios[turma] = {}
+        aulas_por_dia = 5
+        dias_semana = 5
+        for i in range(dias_semana):  # 5 dias
+            horarios[turma][f"Dia {i+1}"] = []
+        
+        # Distribuição de aulas entre os dias da semana
+        for disciplina in disciplinas:
+            professor = next(p for p in professores if p["nome"] == disciplina["professor"])
+            aulas_restantes = professor["aulas_semana"]
+            for dia in range(dias_semana):
+                if aulas_restantes <= 0:
+                    break
+                if len(horarios[turma][f"Dia {dia+1}"]) < aulas_por_dia:
+                    horarios[turma][f"Dia {dia+1}"].append(
+                        f"{disciplina['disciplina']} - {professor['nome']}")
+                    aulas_restantes -= 1
+    
+    visualizar_horarios()
+
+# Função para visualizar os horários na tela
+def visualizar_horarios():
+    horario_text.delete(1.0, tk.END)
+    for turma, dias in horarios.items():
+        horario_text.insert(tk.END, f"Horário da Turma {turma}:\n")
+        for dia, periodos in dias.items():
+            horario_text.insert(tk.END, f"{dia}:\n")
+            for periodo in periodos:
+                horario_text.insert(tk.END, f"  {periodo}\n")
+        horario_text.insert(tk.END, "\n")
+
+# Função para salvar o PDF na pasta Downloads com auto incremento
+def salvar_pdf():
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+
+    for turma, dias in horarios.items():
+        pdf.cell(200, 10, txt=f"Horário da Turma {turma}", ln=True, align="C")
+        for dia, periodos in dias.items():
+            pdf.cell(200, 10, txt=dia, ln=True)
+            for periodo in periodos:
+                pdf.cell(200, 10, txt=f" - {periodo}", ln=True)
+        pdf.cell(200, 10, txt="", ln=True)
+
+    # Diretório de downloads
+    downloads_dir = os.path.join(os.path.expanduser("~"), "Downloads")
+
+    # Encontrar o próximo nome de arquivo disponível
+    i = 1
+    while os.path.exists(os.path.join(downloads_dir, f"horarios_{i}.pdf")):
+        i += 1
+    pdf_path = os.path.join(downloads_dir, f"horarios_{i}.pdf")
+
+    # Salva o PDF
+    pdf.output(pdf_path)
+    messagebox.showinfo("PDF", f"Horários salvos em {pdf_path}")
+
+# Layout da interface
+frame_professor = tk.Frame(root)
+frame_professor.pack(pady=10)
+
+label_professor = tk.Label(frame_professor, text="Nome do Professor:")
+label_professor.pack(side=tk.LEFT)
+entry_professor = tk.Entry(frame_professor)
+entry_professor.pack(side=tk.LEFT)
+
+label_aulas_semana = tk.Label(frame_professor, text="Aulas por semana:")
+label_aulas_semana.pack(side=tk.LEFT)
+entry_aulas_semana = tk.Entry(frame_professor)
+entry_aulas_semana.pack(side=tk.LEFT)
+
+btn_professor = tk.Button(frame_professor, text="Adicionar Professor", command=adicionar_professor)
+btn_professor.pack(side=tk.LEFT)
+
+frame_turma = tk.Frame(root)
+frame_turma.pack(pady=10)
+
+label_turma = tk.Label(frame_turma, text="Adicionar Turma")
+label_turma.pack(side=tk.LEFT)
+entry_turma = tk.Entry(frame_turma)
+entry_turma.pack(side=tk.LEFT)
+btn_turma = tk.Button(frame_turma, text="Adicionar", command=adicionar_turma)
+btn_turma.pack(side=tk.LEFT)
+
+frame_disciplina = tk.Frame(root)
+frame_disciplina.pack(pady=10)
+
+label_disciplina = tk.Label(frame_disciplina, text="Adicionar Disciplina")
+label_disciplina.pack(side=tk.LEFT)
+entry_disciplina = tk.Entry(frame_disciplina)
+entry_disciplina.pack(side=tk.LEFT)
+
+label_prof_list = tk.Label(frame_disciplina, text="Selecione Professor:")
+label_prof_list.pack(side=tk.LEFT)
+
+# Listbox para professores
+professor_listbox = tk.Listbox(frame_disciplina, height=3)
+professor_listbox.pack(side=tk.LEFT)
+btn_disciplina = tk.Button(frame_disciplina, text="Adicionar", command=adicionar_disciplina)
+btn_disciplina.pack(side=tk.LEFT)
+
+# Atualiza a lista de professores quando um novo professor for adicionado
+def atualizar_lista_professores():
+    professor_listbox.delete(0, tk.END)
+    for professor in professores:
+        professor_listbox.insert(tk.END, professor["nome"])
+
+btn_professor.config(command=lambda: [adicionar_professor(), atualizar_lista_professores()])
+
+# Botão para gerar horários
+btn_horarios = tk.Button(root, text="Gerar Horários", command=gerar_horarios)
+btn_horarios.pack(pady=10)
+
+# Campo de texto para visualização dos horários
+horario_text = scrolledtext.ScrolledText(root, width=60, height=15)
+horario_text.pack(pady=10)
+
+# Botão para salvar PDF
+btn_pdf = tk.Button(root, text="Salvar em PDF", command=salvar_pdf)
+btn_pdf.pack(pady=10)
+
+root.mainloop()
