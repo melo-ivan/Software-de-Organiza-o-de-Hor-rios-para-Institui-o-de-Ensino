@@ -1,0 +1,46 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Caches
+*.cache
+*.log
+
+# Virtual environment
+env/
+venv/
+ENV/
+.venv/
+ENV.bak/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+wheelhouse/
+*.manifest
+
+# IDEs and editors specific files
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Python specific
+*.pyo
+*.pyd
+*.pdb
+*.pyc
+
+# PDF exports folder
+exports/*.pdf
+
+# Miscellaneous
+*.bak
+*.swp
